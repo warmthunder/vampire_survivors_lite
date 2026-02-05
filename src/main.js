@@ -4,21 +4,21 @@ canvas.width = innerWidth;
 canvas.height = innerHeight;
 
 const c = canvas.getContext('2d');
-let x = innerWidth/2;
-let y = innerHeight/2;
+
 let mousex = 0;
 let mousey = 0;
 let bullet_s = 3;
 let bullet = false;
 let bullet_c = 0;
 let bullets = [];
+let enemies = [];
 
 let pdist = 0;
 let hdist = 0;
 let vdist = 0;
-let dx = 0;
-let dy = 0
 
+const player = new Player_Circle(innerWidth/2,innerHeight/2);
+enemies.push(new Enemy());
 
 let keys = [false, false, false, false, false];
 
@@ -43,15 +43,8 @@ if(event.key == 'd'){
 }
 
 if(event.key == ' '){
-    bullet = true;
-
-    bullets.push(new Bullet_Circle(x,y,5))
     
-    
-    
-
-
-
+    bullets.push(new Bullet_Circle(player.x,player.y,5));
 }
 })
 
@@ -74,9 +67,7 @@ if(event.key == 'd'){
 
 }
 
-if(event.key == ' '){
-    bullet = true;
-}
+
 })
 
 window.addEventListener('mousemove',function(event){
@@ -94,19 +85,19 @@ function Player_Circle(x,y){
     this.draw = function(){
         c.beginPath();
         c.fillStyle = '#1C646D'
-        c.arc(x,y,30,0,6.28);
+        c.arc(this.x,this.y,75,0,6.28);
         c.fill();
     }
 
     this.update = function(){
         if(keys[0]==true)
-            y-=2;
+            this.y-=2;
         if(keys[1]==true)
-            y+=2;
+            this.y+=2;
         if(keys[2]==true)
-            x-=2;
+            this.x-=2;
         if(keys[3]==true)
-            x+=2;
+            this.x+=2;
         
 
 this.draw();
@@ -120,7 +111,10 @@ function Bullet_Circle(x,y,r){
     this.x = x;
     this.y = y;
     this.r = r;
-    
+    this.dx = 0;
+    this.dy = 0;
+    this.pdist = 0;
+    this.bullet = true;
 
     this.draw = function(){
         c.beginPath();
@@ -130,17 +124,16 @@ function Bullet_Circle(x,y,r){
     }
 
     this.update = function(){ 
-     if(bullet){   
-    pdist = Math.sqrt((x-mousex)**2 + (y-mousey)**2);
-    dx = 3*(mousex-x)/pdist;
-    dy = 3*(mousey-y)/pdist;
-      
-        bullet = false;
+     if(this.bullet){   
+    this.pdist = Math.sqrt((player.x-mousex)**2 + (player.y-mousey)**2);
+    this.dx = 3*(mousex-x)/this.pdist;
+    this.dy = 3*(mousey-y)/this.pdist;
+      this.bullet = false;
     }
 
 
-    this.x+=dx;
-    this.y+=dy;
+    this.x+=this.dx;
+    this.y+=this.dy;
 
    
         this.draw();
@@ -155,22 +148,74 @@ function Bullet_Circle(x,y,r){
 
 }
 
-const player = new Player_Circle(x,y);
+function Enemy(){
+    this.x = Math.random()*innerWidth;
+    this.y = Math.random()*innerHeight;
+
+    this.draw = function(){
+        c.beginPath();
+        c.fillStyle = '#704115'
+        c.arc(this.x,this.y,30,0,6.28);
+        c.fill();
+    }
+
+this.update = function(){
+
+    this.pdist = Math.sqrt((player.x-this.x)**2 + (this.y-player.y)**2);
+    this.dx = 1*(player.x-this.x)/this.pdist;
+    this.dy = 1*(player.y-this.y)/this.pdist;
+      this.bullet = false;
+    
+
+
+    this.x+=this.dx;
+    this.y+=this.dy;
+
+   
+        this.draw();
+}
+}
+
+function detect(x1,y1,r1,x2,y2,r2){
+    return (Math.sqrt((y2-y1)**2 + (x2-x1)**2)<r2+r1 )
+
+}
+
+let enemy = new Enemy();
+
 function animate(){
 
 //clear everything
 c.clearRect(0,0,innerWidth,innerHeight);
 
 //make player
+
 player.update();
-if(bullets[0])
+
+//enemy
+if(enemies[0])
+enemies[0].update();
+
+
+
+for(let i =0; i<bullets.length;i++){
+if(bullets[i])
+{   
+    bullets[i].update();
+    if(enemies[0]&&detect(bullets[i].x, bullets[i].y, bullets[i].r, enemies[0].x,enemies[0].y, 30))
+    {
+        enemies.splice(0,1);
+        bullets.splice(i,1);
+
+    }
     
-    bullets[0].update();
-
-
-
+}
+if(bullets[i] && (bullets[i].x>innerWidth || bullets[i].x<0 || bullets[i].y>innerHeight || bullets[i].y<0))
+{
+    bullets.splice(i,1);
+}
+}
     requestAnimationFrame(animate);
 }
-
 
 animate();
