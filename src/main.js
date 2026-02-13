@@ -5,7 +5,12 @@ canvas.height = innerHeight;
 
 const c = canvas.getContext('2d');
 
-let gameover = false;
+
+//gameover = 1, hp is zero
+//gameover = 0, game is running
+//gameover = 2, menu
+
+let gameover = 2;
 
 
 
@@ -28,6 +33,8 @@ const player = new Player_Circle(innerWidth/2,innerHeight/2);
 enemies.push(new Enemy('#704115'));
 
 let keys = [false, false, false, false];
+
+
 
 window.addEventListener('click',function(){
     
@@ -264,7 +271,7 @@ function animate(){
     //clear everything and changes canvas size
 c.clearRect(0,0,innerWidth,innerHeight);
 
-if(!gameover)
+if(gameover == 0)
 {
 
 //hp text
@@ -311,13 +318,28 @@ if(shoot == 0 && enemies.length>0){
 if(is_hit >0)
 is_hit -=1;
 
+for(let i = enemyBullets.length-1;i>=0;i--){
+    
+            
+if (is_hit==0 && (detect(player.x, player.y, 30, enemyBullets[i].x,enemyBullets[i].y, 3)))
+    {   
+        player.hp-=1;
+        if(player.hp<=0)
+            gameover = true;
+        is_hit = 60;
+}
+
+}
+
 //enemy
 if(enemies.length>0){
     for(let i = 0; i<enemies.length;i++){
     enemies[i].update();
-    
 
-    if (is_hit==0 && detect(player.x, player.y, 30, enemies[i].x,enemies[i].y, 15))
+    
+        
+        
+    if (is_hit==0 && (detect(player.x, player.y, 30, enemies[i].x,enemies[i].y, 15)))
     {   
         player.hp-=1;
         if(player.hp<=0)
@@ -326,8 +348,8 @@ if(enemies.length>0){
 }
 
     }
-
 }
+
 
 for(let i = enemyBullets.length -1;i>=0;i--){
     enemyBullets[i].update();
@@ -365,7 +387,7 @@ if(bullets!= [])
     requestAnimationFrame(animate);
 }
 
-else{
+else if (gameover == 1){
     c.fillStyle = "#CEF09D"
 c.textAlign = 'center';
 c.font = "80px Arial"
@@ -376,6 +398,14 @@ c.font = "30px Arial"
 c.fillText("Restart to Play Again",innerWidth/2 ,innerHeight/2+ 70)
 
 
+}
+
+
+else if(gameover ==2){
+    c.fillStyle = "#CEF09D"
+c.textAlign = 'center';
+c.font = "80px Arial"
+c.fillText("SHOOTING BALLS",innerWidth/2,innerHeight/2 - 30)
 }
 
 }
