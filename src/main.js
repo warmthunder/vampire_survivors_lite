@@ -24,22 +24,35 @@ let enemytime = 120;
 let is_hit = 0;
 let shoot = 120;
 let enemyCount = 0;
+let mousebtn = false;
+let score = 18;
+let animationID;
+let paused = false;
+let boss = false;
+let bigboss;
 
 let pdist = 0;
 let hdist = 0;
 let vdist = 0;
 
 const player = new Player_Circle(innerWidth/2,innerHeight/2);
-enemies.push(new Enemy('#704115'));
+enemies.push(new Enemy('#38184C88'));
 
 let keys = [false, false, false, false];
 
 
 
-window.addEventListener('click',function(){
+window.addEventListener('mousedown',function(){
+
+    mousebtn = true;
     
     bullets.push(new Bullet_Circle(player.x,player.y,3, mousex, mousey));
 
+})
+
+window.addEventListener('mouseup',function(){
+
+    mousebtn = false;
 })
 
 window.addEventListener('resize', ()=>{
@@ -47,6 +60,19 @@ window.addEventListener('resize', ()=>{
     canvas.height = innerHeight;
 
 })
+
+window.addEventListener('keydown', function(event){
+
+if(event.key == 'Escape'){
+    if(paused){
+        paused = false;
+    }
+        else
+        paused = true;
+    
+
+}})
+
 
 window.addEventListener('keydown', function(event){
 
@@ -142,7 +168,8 @@ function Bullet_Circle(x,y,r, x2, y2){
 
     this.draw = function(){
         c.beginPath();
-        c.fillStyle = '#CEF09D'
+        c.fillStyle = '#A0CD60'
+
         c.arc(this.x,this.y,r,0,6.28);
         c.fill();
     }
@@ -260,6 +287,55 @@ this.update = function(){
 }
 }
 
+function Boss(){
+
+    this.whatiszero = Math.random()-0.5;
+    this.hp = 50;
+    this.x = Math.random()*innerWidth;
+    this.y = Math.random()*innerHeight;
+//only spawn in the edge
+    if(this.whatiszero>0)
+    {   if(this.whatiszero>0.25)
+        this.x = 0;
+        else
+            this.x = innerWidth;
+    }
+        else{
+            if(this.whatiszero<-0.25)
+        
+            this.y = 0;
+            else
+                this.y = innerHeight;
+        }
+    this.draw = function(){
+        c.beginPath();
+        c.fillStyle = "#4d161aff"
+        c.arc(this.x,this.y,35,0,6.28);
+        c.fill();
+
+        c.fillStyle = "##D64550"
+        c.arc(this.x, this.y, 40,0,(6.28*this.hp)/50)
+
+    }
+
+this.update = function(){
+
+    this.pdist = Math.sqrt((player.x-this.x)**2 + (this.y-player.y)**2);
+    this.dx = 1*(player.x-this.x)/this.pdist;
+    this.dy = 1*(player.y-this.y)/this.pdist;
+      
+    
+
+
+    this.x+=this.dx;
+    this.y+=this.dy;
+
+   
+        this.draw();
+}
+
+}
+
 
 function detect(x1,y1,r1,x2,y2,r2){
     return (Math.sqrt((y2-y1)**2 + (x2-x1)**2)<r2+r1 )
@@ -268,8 +344,14 @@ function detect(x1,y1,r1,x2,y2,r2){
 
 
 function animate(){
+
+   
+
+
     //clear everything and changes canvas size
 c.clearRect(0,0,innerWidth,innerHeight);
+c.fillStyle = "#1F0802";
+c.fillRect(0,0,canvas.width,canvas.height);
 
 if(gameover == 0)
 {
@@ -280,6 +362,7 @@ c.textAlign = 'right';
 c.textBaseline = 'top';
 c.font = "30px Arial"
 c.fillText(`HP: ${player.hp}`,canvas.width -30,30)
+c.fillText(`SCORE: ${score}`,canvas.width -30,70)
 
 
 
@@ -289,16 +372,26 @@ player.update();
 //enemy bullets timer
 shoot-=1;
 
+//spawn boss
+if(score>20 && !boss){
+    bigboss = new Boss();
+    boss = true;
+}
+
+if(boss)
+    bigboss.update();
+
+
 //spawn enemy
 enemytime-=1;
 
 if(enemytime <= 0){
     if (enemyCount %3 == 0){
- enemies.push(new shooter('#8B8000')) 
+ enemies.push(new shooter('#910332ff')) 
  enemyCount+=1;
     }
     else{
- enemies.push(new Enemy('#704115')) 
+ enemies.push(new Enemy('#38184C88')) 
  enemyCount+=1;
 }
 enemytime = 120;
@@ -352,6 +445,19 @@ if(enemies.length>0){
 
 
 for(let i = enemyBullets.length -1;i>=0;i--){
+
+    if (
+        enemyBullets[i].x > innerWidth ||
+        enemyBullets[i].x < 0 ||
+        enemyBullets[i].y > innerHeight ||
+        enemyBullets[i].y < 0
+    ) {
+        enemyBullets.splice(i, 1);
+        continue;
+    }
+
+
+
     enemyBullets[i].update();
 }
 
@@ -368,7 +474,7 @@ if(bullets!= [])
     for(let a =enemies.length -1;a>=0;a--){
     if(detect(bullets[i].x, bullets[i].y, bullets[i].r, enemies[a].x,enemies[a].y, 15 ))
     {   
-        
+        score+=1;
         enemies.splice(a,1);
         bullets.splice(i,1);   
         break;
@@ -384,21 +490,42 @@ if(bullets!= [])
 
 }
 
-    requestAnimationFrame(animate);
 }
 
 else if (gameover == 1){
+
+    score = 0;
+    player.hp = 5;
+    enemies = []
+    enemyBullets = []
+    player.x = innerWidth/2;
+    player.y = innerHeight/2;
+
     c.fillStyle = "#CEF09D"
 c.textAlign = 'center';
 c.font = "80px Arial"
-c.fillText("GAME OVER",innerWidth/2,innerHeight/2)
+c.fillText("GAME OVER",innerWidth/2,innerHeight/2-30)
 
+
+
+
+//restart button
+c.fillRect(innerWidth/2-200,innerHeight/2 + 70,400,50)
+
+c.fillStyle = "#38184C"
 c.textAlign = 'center';
-c.font = "30px Arial"
-c.fillText("Restart to Play Again",innerWidth/2 ,innerHeight/2+ 70)
+c.font = "40px Arial"
+c.fillText("PLAY",innerWidth/2,innerHeight/2+80)
 
+if(mousex>innerWidth/2-200 && mousex<innerWidth/2+200 && mousey>innerHeight/2 + 70 && mousey<innerHeight/2 + 120){
+        
+    if(mousebtn){
+        gameover = 0;
+    }  
+}  
 
 }
+
 
 
 else if(gameover ==2){
@@ -406,8 +533,34 @@ else if(gameover ==2){
 c.textAlign = 'center';
 c.font = "80px Arial"
 c.fillText("SHOOTING BALLS",innerWidth/2,innerHeight/2 - 30)
-}
+
+    c.fillRect(innerWidth/2-200,innerHeight/2 + 30,400,50)
+
+
+c.fillStyle = "#38184C"
+c.textAlign = 'center';
+c.font = "40px Arial"
+c.fillText("PLAY",innerWidth/2,innerHeight/2+70)
+
+if(mousex>innerWidth/2-200 && mousex<innerWidth/2+200 && mousey>innerHeight/2 + 30 && mousey<innerHeight/2 + 80){
+
+    if(mousebtn){
+        gameover = 0;
+    }
 
 }
+}
+}
 
-animate();
+
+function gameloop(){
+
+    if(!paused)
+        animate();
+    
+
+    requestAnimationFrame(gameloop);
+}
+
+
+gameloop();
