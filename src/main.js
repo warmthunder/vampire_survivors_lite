@@ -5,10 +5,10 @@ canvas.height = innerHeight;
 
 const c = canvas.getContext('2d');
 
-
 //gameover = 1, hp is zero
 //gameover = 0, game is running
 //gameover = 2, menu
+//gameover = 3, level up
 
 let gameover = 2;
 
@@ -21,14 +21,24 @@ let bullets = [];
 let enemyBullets = [];
 let enemies = [];
 let enemytime = 120;
+let enemeytimecooldown = 120;
 let is_hit = 0;
 let shoot = 120;
 let enemyCount = 0;
 let mousebtn = false;
-let score = 18;
+let score = 8;
+let nextlevel = 10;
+let levelup = false;
 let animationID;
 let paused = false;
-let boss = false;
+let blr = false;
+let playerdamage = 1;
+let playerspeed = 5;
+let shootcooldown = 0;
+let cooldownshot = 30;
+let bullt = false;
+let maxhp = 5;
+
 let bigboss;
 
 let pdist = 0;
@@ -41,18 +51,18 @@ enemies.push(new Enemy('#38184C88'));
 let keys = [false, false, false, false];
 
 
-
-window.addEventListener('mousedown',function(){
-
+canvas.addEventListener('mousedown',function(){
+     
     mousebtn = true;
-    
-    bullets.push(new Bullet_Circle(player.x,player.y,3, mousex, mousey));
+    if(!paused && gameover == 0)
+    bullt = true;
 
 })
 
-window.addEventListener('mouseup',function(){
+canvas.addEventListener('mouseup',function(){
 
     mousebtn = false;
+    bullt = false;
 })
 
 window.addEventListener('resize', ()=>{
@@ -117,7 +127,7 @@ if(event.key == 'd'){
 
 })
 
-window.addEventListener('mousemove',function(event){
+canvas.addEventListener('mousemove',function(event){
 
 mousex = event.clientX;
 mousey = event.clientY;
@@ -139,13 +149,13 @@ function Player_Circle(x,y){
 
     this.update = function(){
         if(keys[0]==true && this.y>0)
-            this.y-=5;
+            this.y-=playerspeed;
         if(keys[1]==true && this.y<innerHeight)
-            this.y+=5;
+            this.y+=playerspeed;
         if(keys[2]==true && this.x>0)
-            this.x-=5;
+            this.x-=playerspeed;
         if(keys[3]==true && this.x<innerWidth)
-            this.x+=5;
+            this.x+=playerspeed;
         
 
 this.draw();
@@ -287,10 +297,11 @@ this.update = function(){
 }
 }
 
-function Boss(){
+function Boss(hp){
 
     this.whatiszero = Math.random()-0.5;
-    this.hp = 50;
+    this.hp = hp;
+    this.intialhealth = hp;
     this.x = Math.random()*innerWidth;
     this.y = Math.random()*innerHeight;
 //only spawn in the edge
@@ -313,8 +324,10 @@ function Boss(){
         c.arc(this.x,this.y,35,0,6.28);
         c.fill();
 
-        c.fillStyle = "##D64550"
-        c.arc(this.x, this.y, 40,0,(6.28*this.hp)/50)
+        c.beginPath();
+        c.strokeStyle = "#4ad645ff"
+        c.arc(this.x, this.y, 40,0,(6.28*this.hp)/this.intialhealth);
+        c.stroke();
 
     }
 
@@ -363,6 +376,7 @@ c.textBaseline = 'top';
 c.font = "30px Arial"
 c.fillText(`HP: ${player.hp}`,canvas.width -30,30)
 c.fillText(`SCORE: ${score}`,canvas.width -30,70)
+c.fillText(`LEVEL UP: ${nextlevel}`,canvas.width -30,110)
 
 
 
@@ -373,14 +387,21 @@ player.update();
 shoot-=1;
 
 //spawn boss
-if(score>20 && !boss){
-    bigboss = new Boss();
-    boss = true;
+if(score%30==0 && !bigboss && score!=0){
+    bigboss = new Boss(Math.floor(score/2));
+ 
 }
 
-if(boss)
+if(bigboss){
     bigboss.update();
+    if(is_hit<=0 && detect(bigboss.x,bigboss.y,35, player.x, player.y, 30 )){
+        player.hp-=1;
+        is_hit = 60;
+        if (player.hp == 0)
+            gameover = 1;
+    }
 
+}
 
 //spawn enemy
 enemytime-=1;
@@ -394,9 +415,10 @@ if(enemytime <= 0){
  enemies.push(new Enemy('#38184C88')) 
  enemyCount+=1;
 }
-enemytime = 120;
+enemytime = enemeytimecooldown;
 }
 
+//spawn shooting enemies
 if(shoot == 0 && enemies.length>0){
     for(let i = 0;i<enemies.length;i++){
         if(enemyCount%3 == 0){
@@ -410,6 +432,19 @@ if(shoot == 0 && enemies.length>0){
 //invincibility 
 if(is_hit >0)
 is_hit -=1;
+
+//player shooting
+shootcooldown-=1;
+if(shootcooldown<0&&bullt){
+    bullets.push(new Bullet_Circle(player.x,player.y,3, mousex, mousey));
+    shootcooldown = cooldownshot;
+}
+
+//level up 
+if(score == nextlevel){
+    nextlevel = nextlevel *2;
+    gameover = 3;
+}
 
 for(let i = enemyBullets.length-1;i>=0;i--){
     
@@ -478,18 +513,24 @@ if(bullets!= [])
         enemies.splice(a,1);
         bullets.splice(i,1);   
         break;
-        
-
     }
-    
+    if(bigboss){
+    if(detect(bullets[i].x, bullets[i].y, bullets[i].r, bigboss.x,bigboss.y, 35)){
+        bigboss.hp -= playerdamage;
+        bullets.splice(i,1); 
+        if(bigboss.hp <=0){
+            
+            score+=Math.floor(bigboss.intialhealth/2);
+           
+            bigboss = 0;
+            
+        }
+        break;
+    }
+}   
+}   
 }
-    
 }
-
-
-
-}
-
 }
 
 else if (gameover == 1){
@@ -550,17 +591,144 @@ if(mousex>innerWidth/2-200 && mousex<innerWidth/2+200 && mousey>innerHeight/2 + 
 
 }
 }
+
+else if(gameover==3){
+    paused = true;
+    levelup = true;
+    blr = false;
+}
+
 }
 
 
 function gameloop(){
 
-    if(!paused)
-        animate();
+    if(!paused){
+        if(blr)
+        {
+        c.filter = 'none';
+        blr = false;
     
+    }animate();
+    }
+    else if(paused && gameover == 0){
 
-    requestAnimationFrame(gameloop);
+    if(!blr){
+    c.filter = 'blur(10px)';
+    animate();
+    blr = true;
+    }
+
+    c.filter = 'none';
+    c.fillStyle = "#CEF09D"
+    c.textAlign = 'center';
+    c.font = "80px Arial"
+    c.fillText("Paused",innerWidth/2,innerHeight/2 - 100)
+
+    c.fillRect(innerWidth/2-200,innerHeight/2 + 30,400,50)
+
+
+    c.fillStyle = "#38184C"
+    c.textAlign = 'center';
+    c.font = "40px Arial"
+    c.fillText("PLAY",innerWidth/2,innerHeight/2+40)
+
+    if(mousex>innerWidth/2-200 && mousex<innerWidth/2+200 && mousey>innerHeight/2 + 30 && mousey<innerHeight/2 + 80){
+    if(mousebtn){
+        paused = false;
+    }
+
 }
 
 
+    }
+
+    else if(paused && levelup){
+        if(!blr){
+    c.filter = 'blur(10px)';
+    animate();
+    blr = true;
+    }
+
+    c.filter = 'none';
+    
+    //level up
+    c.fillStyle = "#CEF09D"
+    c.textAlign = 'center';
+    c.font = "80px Arial"
+    c.fillText("Level Up!",innerWidth/2,50);
+
+    c.font = "40px Arial"
+    c.fillText("Health Restored!",innerWidth/2,130)
+
+    player.hp = maxhp;
+
+    //options
+    c.fillRect(innerWidth/4-200,innerHeight/4 + 30,400,50)
+    c.fillRect(innerWidth/4-200,innerHeight*3/4 + 30,400,50)
+    c.fillRect(innerWidth*3/4-200,innerHeight/4 + 30,400,50)
+    c.fillRect(innerWidth*3/4-200,innerHeight*3/4 + 30,400,50)
+
+
+
+    c.fillStyle = "#38184C"
+    c.textAlign = 'center';
+    c.font = "40px Arial"
+    c.fillText("Increase Health!",innerWidth/4,innerHeight/4+40)
+    
+    c.fillStyle = "#38184C"
+    c.textAlign = 'center';
+    c.font = "40px Arial"
+    c.fillText("Increase Damage!",innerWidth/4,innerHeight*3/4+40)
+
+    c.fillStyle = "#38184C"
+    c.textAlign = 'center';
+    c.font = "28px Arial"
+    c.fillText("Increase Enemy SpawnRate!",innerWidth*3/4,innerHeight/4+40)
+
+    c.fillStyle = "#38184C"
+    c.textAlign = 'center';
+    c.font = "40px Arial"
+    c.fillText("Increase ShotSpeed!",innerWidth*3/4,innerHeight*3/4+40)
+
+    if(mousex>innerWidth/4-200 && mousex<innerWidth/4+200 && mousey>innerHeight/4 + 30 && mousey<innerHeight/4 + 80){
+       
+        if(mousebtn){
+        maxhp+= 1;
+        paused = false;
+        gameover = 0;
+    }
+}
+
+     if(mousex>innerWidth/4-200 && mousex<innerWidth/4+200 && mousey>innerHeight*3/4 + 30 && mousey<innerHeight*3/4 + 80){
+    
+        if(mousebtn){
+        playerdamage +=1;
+        paused = false;
+        gameover = 0;
+    }
+}
+     if(mousex>innerWidth*3/4-200 && mousex<innerWidth*3/4+200 && mousey>innerHeight/4 + 30 && mousey<innerHeight/4 + 80){
+        
+        if(mousebtn){
+        enemeytimecooldown -= 10;
+        paused = false;
+        gameover = 0;
+    }
+}
+     if(mousex>innerWidth*3/4-200 && mousex<innerWidth*3/4+200 && mousey>innerHeight*3/4 + 30 && mousey<innerHeight*3/4 + 80){
+        
+        if(mousebtn){
+            cooldownshot-=15;
+        paused = false;
+        gameover = 0;
+    }
+}
+
+}
+    
+
+
+    requestAnimationFrame(gameloop);
+}
 gameloop();
