@@ -38,6 +38,7 @@ let shootcooldown = 0;
 let cooldownshot = 30;
 let bullt = false;
 let maxhp = 5;
+let parry = false;
 
 let bigboss;
 
@@ -51,18 +52,32 @@ enemies.push(new Enemy('#38184C88'));
 let keys = [false, false, false, false];
 
 
-canvas.addEventListener('mousedown',function(){
-     
+canvas.addEventListener('mousedown',function(event){
+
+    if(event.button == 0){ 
     mousebtn = true;
     if(!paused && gameover == 0)
     bullt = true;
-
+}
+    if(event.button == 2){
+        parry = true;
+    }
 })
 
-canvas.addEventListener('mouseup',function(){
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault(); // Prevents the default context menu from appearing
+});
 
+
+canvas.addEventListener('mouseup',function(event){
+    if(event.button == 0){
     mousebtn = false;
     bullt = false;
+}
+
+    if(event.button == 2){
+        parry = false;
+    }
 })
 
 window.addEventListener('resize', ()=>{
@@ -451,10 +466,17 @@ for(let i = enemyBullets.length-1;i>=0;i--){
             
 if (is_hit==0 && (detect(player.x, player.y, 30, enemyBullets[i].x,enemyBullets[i].y, 3)))
     {   
+
+        if (parry){
+            enemyBullets[i].dx *= -1;
+            enemyBullets[i].dy *= -1
+        }
+        else{
         player.hp-=1;
         if(player.hp<=0)
             gameover = true;
         is_hit = 60;
+    }
 }
 
 }
