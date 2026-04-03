@@ -174,7 +174,7 @@ function Player_Circle(x,y){
     this.radius = 25
     this.angle = 0;
     const playersprite = new Image();
-    playersprite.src = 'images/player_sprite.png'
+    playersprite.src = '/images/player_sprite.png'
         
 
     this.draw = function(){
