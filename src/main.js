@@ -174,12 +174,18 @@ function Player_Circle(x,y){
     this.radius = 25
     this.angle = 0;
     const playersprite = new Image();
-    playersprite.src = new URL('./images/player_sprite.png', import.meta.url).href;
-     
-        
+    playersprite.src = '/images/player_sprite.png';
+
+    this.loaded = false;
+
+    playersprite.onload = () => {
+        this.loaded = true;
+    };  
 
     this.draw = function(){
-        c.drawImage(playersprite, -25, -25, 50, 50); 
+        if (this.loaded) {
+        c.drawImage(playersprite, -25, -25, 50, 50);
+    }
     }
 
     this.update = function(dt){
